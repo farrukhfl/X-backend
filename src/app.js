@@ -5,6 +5,10 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const authRoutes = require("./routes/authRoutes");
+const errorHandler = require("./middlewares/errorHandler");
+const auth = require("./middlewares/auth");
+const userRoutes = require("./routes/userRoutes");
+
 
 dotenv.config();
 
@@ -24,6 +28,14 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use("/api/auth", authRoutes);
+app.get("/api/me", auth, (req, res) => {
+  res.json({
+    message: "Authenticated!",
+    user: req.user,
+  });
+});
+
+app.use("/api/user", userRoutes);
 
 
 // Health check
@@ -31,4 +43,6 @@ app.get('/', (req, res) => {
   res.send({ status: 'API is running 🚀' });
 });
 
+
+app.use(errorHandler);
 module.exports = app;
