@@ -8,6 +8,7 @@ const authRoutes = require("./routes/authRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 const auth = require("./middlewares/auth");
 const userRoutes = require("./routes/userRoutes");
+const tweetRoutes = require("./routes/tweetRoutes");
 
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.get("/api/me", auth, (req, res) => {
 });
 
 app.use("/api/user", userRoutes);
+app.use("/api/tweets", tweetRoutes);
 
 
 // Health check

@@ -146,3 +146,111 @@ exports.likeTweet = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+exports.retweet = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const tweetId = req.params.id;
+    const { content } = req.body; // optional quote
+
+    const tweet = await Tweet.findById(tweetId);
+    if (!tweet) {
+      return res.status(404).json({ success: false, message: "Tweet not found" });
+    }
+
+    if (content && content.trim().length > 0) {
+      // Quote Tweet → create new tweet with parentTweet
+      const quoteTweet = await Tweet.create({
+        author: userId,
+        content: content.trim(),
+        parentTweet: tweetId,
+      });
+
+      await quoteTweet.populate("author", "username name avatar");
+      return res.status(201).json({ success: true, tweet: quoteTweet });
+    }
+
+    // Simple Retweet → toggle user in retweets array
+    const alreadyRetweeted = tweet.retweets.includes(userId);
+
+    if (alreadyRetweeted) {
+      tweet.retweets.pull(userId);
+    } else {
+      tweet.retweets.push(userId);
+    }
+
+    await tweet.save();
+    await tweet.populate("author", "username name avatar");
+
+    res.json({ success: true, tweet });
+  } catch (err) {
+    console.error("retweet error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+exports.replyTweet = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const tweetId = req.params.id;
+    const { content } = req.body;
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({ success: false, message: "Reply content is required" });
+    }
+
+    if (content.length > 280) {
+      return res.status(400).json({ success: false, message: "Reply cannot exceed 280 characters" });
+    }
+
+    const parentTweet = await Tweet.findById(tweetId);
+    if (!parentTweet) {
+      return res.status(404).json({ success: false, message: "Original tweet not found" });
+    }
+
+    const replyTweet = await Tweet.create({
+      author: userId,
+      content: content.trim(),
+      parentTweet: tweetId,
+    });
+
+    await replyTweet.populate("author", "username name avatar");
+
+    res.status(201).json({ success: true, tweet: replyTweet });
+  } catch (err) {
+    console.error("replyTweet error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.deleteTweet = async (req, res) => {
+  try {
+    const tweetId = req.params.id;
+    const userId = req.user._id;
+
+    const tweet = await Tweet.findById(tweetId);
+
+    if (!tweet) {
+      return res.status(404).json({ success: false, message: "Tweet not found" });
+    }
+
+    // Only tweet creator can delete
+    if (tweet.author.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized to delete this tweet" });
+    }
+
+    // Delete the tweet
+    await Tweet.deleteOne({ _id: tweetId });
+
+    res.status(200).json({
+      success: true,
+      message: "Tweet deleted successfully"
+    });
+
+  } catch (err) {
+    console.error("deleteTweet error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
