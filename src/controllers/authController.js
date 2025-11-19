@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 exports.register = async (req, res) => {
   try {
@@ -79,5 +80,114 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.log("Login error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+exports.requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      // DO NOT reveal if email exists (security best practice)
+      return res.json({
+        success: true,
+        message: "If that email exists, a reset link has been sent",
+      });
+    }
+
+    // generate token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // hash token
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    // save to DB
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 minutes
+    await user.save();
+
+    // reset link (for now: API response)
+    const resetURL = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
+
+    res.json({
+      success: true,
+      message: "Password reset link generated",
+      resetURL, // return for testing
+    });
+  } catch (err) {
+    console.error("requestPasswordReset error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const resetToken = req.params.token;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password is required",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    // hash token again to compare
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    // find user with matching token and valid expiry
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    }).select("+password");
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Token is invalid or expired",
+      });
+    }
+
+    // update password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+
+    // clear reset token
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Password reset successful",
+    });
+  } catch (err) {
+    console.error("resetPassword error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

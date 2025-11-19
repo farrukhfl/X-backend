@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
+
 const createError = require("../utils/createError"); // optional helper
 
 
