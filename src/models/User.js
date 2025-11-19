@@ -38,7 +38,8 @@ const userSchema = new mongoose.Schema(
     },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
-
+followersCount: { type: Number, default: 0 },
+followingCount: { type: Number, default: 0 },
     avatar: {
       type: String,
       default: "", // later we can integrate cloudinary / s3
