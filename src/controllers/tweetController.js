@@ -306,3 +306,57 @@ exports.toggleRetweet = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+exports.getTweetById = async (req, res) => {
+  try {
+    const tweetId = req.params.id;
+    const userId = req.user._id; // logged-in user
+
+    // Populate tweet with author details
+    const tweet = await Tweet.findById(tweetId)
+      .populate("author", "_id name avatar")
+      .populate("replies", "_id author text createdAt");
+
+    if (!tweet) {
+      return res.status(404).json({
+        success: false,
+        message: "Tweet not found",
+      });
+    }
+
+    // Check if current user liked this tweet
+    const liked = tweet.likes.includes(userId);
+
+    // Check if current user retweeted this tweet
+    const retweeted = tweet.retweets.includes(userId);
+
+    res.status(200).json({
+      success: true,
+      tweet: {
+        _id: tweet._id,
+        author: tweet.author,
+        text: tweet.text,
+        image: tweet.image,
+
+        createdAt: tweet.createdAt,
+        updatedAt: tweet.updatedAt,
+
+        // engagement info
+        likesCount: tweet.likes.length,
+        retweetsCount: tweet.retweets.length,
+        repliesCount: tweet.replies.length,
+
+        liked,
+        retweeted,
+      },
+    });
+
+  } catch (err) {
+    console.error("getTweetById error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
