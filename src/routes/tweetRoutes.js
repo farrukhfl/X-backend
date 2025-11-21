@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth");
-const { createTweet, getUserTweets, getFeed, likeTweet, retweet, replyTweet, deleteTweet, toggleRetweet, getTweetById } = require("../controllers/tweetController");
+const { createTweet, getUserTweets, getFeed, likeTweet, retweet, replyTweet, deleteTweet, toggleRetweet, getTweetById, getUserTweets, getRepliesForTweet } = require("../controllers/tweetController");
 
 // POST /api/tweets
 router.post("/", auth, createTweet);
@@ -18,6 +18,9 @@ router.post("/:id/reply", auth, replyTweet);
 router.delete("/:id", auth, deleteTweet);
 router.post("/:id/retweet", auth, toggleRetweet);
 router.get("/:id", auth, getTweetById);
+
+router.get("/user/:userId", auth, getUserTweets);
+router.get("/:id/replies", auth, getRepliesForTweet);
 
 
 

@@ -360,3 +360,99 @@ exports.getTweetById = async (req, res) => {
     });
   }
 };
+
+
+exports.getUserTweets = async (req, res) => {
+  try {
+    const profileUserId = req.params.userId;   // Whose profile we are viewing
+    const currentUserId = req.user._id;       // Logged-in user
+
+    // Get all tweets by that user
+    const tweets = await Tweet.find({ author: profileUserId })
+      .populate("author", "_id name avatar")
+      .sort({ createdAt: -1 });
+
+    const formattedTweets = tweets.map(tweet => {
+      return {
+        _id: tweet._id,
+        author: tweet.author,
+        text: tweet.text,
+        image: tweet.image,
+
+        createdAt: tweet.createdAt,
+
+        likesCount: tweet.likes.length,
+        retweetsCount: tweet.retweets.length,
+        repliesCount: tweet.replies.length,
+
+        liked: tweet.likes.includes(currentUserId),
+        retweeted: tweet.retweets.includes(currentUserId)
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      tweets: formattedTweets
+    });
+
+  } catch (err) {
+    console.error("getUserTweets error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+
+exports.getRepliesForTweet = async (req, res) => {
+  try {
+    const tweetId = req.params.id;
+    const currentUserId = req.user._id;
+
+    // Get original tweet and populate replies
+    const parentTweet = await Tweet.findById(tweetId)
+      .populate({
+        path: "replies",
+        populate: { path: "author", select: "_id name avatar" },
+        options: { sort: { createdAt: -1 } } // newest first
+      });
+
+    if (!parentTweet) {
+      return res.status(404).json({
+        success: false,
+        message: "Tweet not found"
+      });
+    }
+
+    // Format each reply
+    const formattedReplies = parentTweet.replies.map(reply => {
+      return {
+        _id: reply._id,
+        author: reply.author,
+        text: reply.text,
+        image: reply.image,
+        createdAt: reply.createdAt,
+
+        likesCount: reply.likes.length,
+        retweetsCount: reply.retweets.length,
+        repliesCount: reply.replies.length,
+
+        liked: reply.likes.includes(currentUserId),
+        retweeted: reply.retweets.includes(currentUserId)
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      parentTweetId: tweetId,
+      totalReplies: formattedReplies.length,
+      replies: formattedReplies
+    });
+
+  } catch (err) {
+    console.error("getRepliesForTweet error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
