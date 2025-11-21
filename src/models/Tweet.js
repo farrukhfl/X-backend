@@ -2,7 +2,11 @@ const mongoose = require("mongoose");
 
 const tweetSchema = new mongoose.Schema(
   {
-    author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
     content: {
       type: String,
@@ -19,7 +23,11 @@ const tweetSchema = new mongoose.Schema(
 
     // parent tweet for replies or retweets
     parentTweet: { type: mongoose.Schema.Types.ObjectId, ref: "Tweet" },
-    
+    quotedTweet: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tweet",
+      default: null,
+    },
   },
   { timestamps: true }
 );

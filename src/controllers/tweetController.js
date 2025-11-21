@@ -456,3 +456,38 @@ exports.getRepliesForTweet = async (req, res) => {
     });
   }
 };
+
+exports.quoteTweet = async (req, res) => {
+  try {
+    const originalTweetId = req.params.id;
+    const { text } = req.body;
+    const userId = req.user._id;
+
+    // Check required text
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ message: "Quote tweet must contain text" });
+    }
+
+    // Check original tweet exists
+    const originalTweet = await Tweet.findById(originalTweetId);
+    if (!originalTweet) {
+      return res.status(404).json({ message: "Tweet not found" });
+    }
+
+    // Create new quote tweet
+    const newQuoteTweet = await Tweet.create({
+      user: userId,
+      text,
+      quotedTweet: originalTweetId
+    });
+
+    return res.status(201).json({
+      message: "Tweet quoted successfully",
+      tweet: newQuoteTweet
+    });
+
+  } catch (error) {
+    console.error("Quote tweet error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
