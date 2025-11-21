@@ -38,8 +38,8 @@ const userSchema = new mongoose.Schema(
     },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
-followersCount: { type: Number, default: 0 },
-followingCount: { type: Number, default: 0 },
+    followersCount: { type: Number, default: 0 },
+    followingCount: { type: Number, default: 0 },
     avatar: {
       type: String,
       default: "", // later we can integrate cloudinary / s3
@@ -47,6 +47,7 @@ followingCount: { type: Number, default: 0 },
 
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    retweets: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tweet" }],
   },
   { timestamps: true }
 );

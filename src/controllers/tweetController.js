@@ -254,3 +254,55 @@ exports.deleteTweet = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+exports.toggleRetweet = async (req, res) => {
+  try {
+    const tweetId = req.params.id;
+    const userId = req.user._id;
+
+    const tweet = await Tweet.findById(tweetId);
+    const user = await User.findById(userId);
+
+    if (!tweet) {
+      return res.status(404).json({ success: false, message: "Tweet not found" });
+    }
+
+    // Check if user already retweeted
+    const hasRetweeted = tweet.retweets.includes(userId);
+
+    if (hasRetweeted) {
+      // Undo Retweet
+      tweet.retweets = tweet.retweets.filter(id => id.toString() !== userId.toString());
+      user.retweets = user.retweets.filter(id => id.toString() !== tweetId.toString());
+
+      await tweet.save();
+      await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Retweet removed",
+        retweeted: false,
+        retweetCount: tweet.retweets.length
+      });
+    }
+
+    // Add Retweet
+    tweet.retweets.push(userId);
+    user.retweets.push(tweetId);
+
+    await tweet.save();
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Retweeted successfully",
+      retweeted: true,
+      retweetCount: tweet.retweets.length
+    });
+
+  } catch (err) {
+    console.error("toggleRetweet error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

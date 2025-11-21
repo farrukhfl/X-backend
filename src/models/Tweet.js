@@ -19,6 +19,7 @@ const tweetSchema = new mongoose.Schema(
 
     // parent tweet for replies or retweets
     parentTweet: { type: mongoose.Schema.Types.ObjectId, ref: "Tweet" },
+    
   },
   { timestamps: true }
 );
