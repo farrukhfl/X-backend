@@ -491,3 +491,51 @@ exports.quoteTweet = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+exports.getTimelineFeed = async (req, res) => {
+  try {
+    const currentUserId = req.user._id;
+
+    // Get logged-in user
+    const currentUser = await User.findById(currentUserId);
+
+    if (!currentUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Combine following users + self
+    const usersToFetch = [...currentUser.following, currentUserId];
+
+    // Fetch tweets from these users
+    const tweets = await Tweet.find({ author: { $in: usersToFetch } })
+      .populate("author", "_id name avatar username")
+      .sort({ createdAt: -1 }) // newest first
+      .limit(50); // limit for now
+
+    // Format tweets
+    const formattedTweets = tweets.map(tweet => ({
+      _id: tweet._id,
+      author: tweet.author,
+      text: tweet.text,
+      image: tweet.image,
+      createdAt: tweet.createdAt,
+
+      likesCount: tweet.likes.length,
+      retweetsCount: tweet.retweets.length,
+      repliesCount: tweet.replies.length,
+
+      liked: tweet.likes.includes(currentUserId),
+      retweeted: tweet.retweets.includes(currentUserId)
+    }));
+
+    res.status(200).json({
+      success: true,
+      feedCount: formattedTweets.length,
+      tweets: formattedTweets
+    });
+
+  } catch (err) {
+    console.error("getTimelineFeed error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
