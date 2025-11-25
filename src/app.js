@@ -1,15 +1,15 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
-const dotenv = require('dotenv');
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const rateLimit = require("express-rate-limit");
+const dotenv = require("dotenv");
 const authRoutes = require("./routes/authRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 const auth = require("./middlewares/auth");
 const userRoutes = require("./routes/userRoutes");
 const tweetRoutes = require("./routes/tweetRoutes");
-
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 dotenv.config();
 
@@ -19,7 +19,7 @@ const app = express();
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 
 // Rate limiter
 const limiter = rateLimit({
@@ -38,13 +38,12 @@ app.get("/api/me", auth, (req, res) => {
 
 app.use("/api/user", userRoutes);
 app.use("/api/tweets", tweetRoutes);
-
+app.use("/api/analytics", analyticsRoutes);
 
 // Health check
-app.get('/', (req, res) => {
-  res.send({ status: 'API is running 🚀' });
+app.get("/", (req, res) => {
+  res.send({ status: "API is running 🚀" });
 });
-
 
 app.use(errorHandler);
 module.exports = app;
